@@ -63,14 +63,30 @@ def age_discretization(value):
 	else:
 		return "senior"
 
+def fare_discretization(value):
+	if value >40:
+		value = 39
+	if value < 10:
+		return 'first'
+	if value < 20:
+		return 'second'
+	if value < 30:
+		return 'third'
+	else:
+		return 'fourth'
+
 
 def preprocess(data):
-	extracted_data = data[:,[2,4,5,1]]
+	extracted_data = data[:,[2,4,5,9,1]]
 	extracted_data[:,2][extracted_data[:,2] == ''] = '0'
 	age = extracted_data[:,2].astype(float)
 	discrete_age = [age_discretization(a) for a in age]
 	discrete_age = np.array(discrete_age)
+	fare = extracted_data[:,3].astype(float)
+	discrete_fare = [fare_discretization(a) for a in fare]
+	discrete_fare = np.array(discrete_fare)
 	extracted_data[:,2] = discrete_age
+	extracted_data[:,3] = discrete_fare
 
 	return extracted_data
 
@@ -93,6 +109,7 @@ def gini_impurity_attr(data, column):
 	class_column = data.shape[1]-1 # last column specifies the class
 	rows = float(data.shape[0])
 	unique_values = np.unique(data[:,column])
+	print "unique values->", unique_values
 	total = np.size(unique_values)
 	if total % 2 == 0:
 		total = total/2
@@ -125,12 +142,12 @@ def best_split(data):
 	min_gini_selection = []
 	for attr in attribute_list:
 		gini_a, value_list = gini_impurity_attr(data,attr)
-		print gini_a
+		# print gini_a
 		if gini_a < min_gini_attr_val:
 			min_gini_attr_val = gini_a
 			min_gini_attr = attr
 			min_gini_selection = value_list
-	return min_gini_attr_val, min_gini_attr, value_list
+	return min_gini_attr_val, min_gini_attr, min_gini_selection
 
 class decisionnode:
 	def __init__(self,col=-1, value=None,results= None,tb=None,fb=None):
@@ -139,3 +156,72 @@ class decisionnode:
 		self.results = results
 		self.tb = tb # true node
 		self.fb = fb #false node
+
+
+	def create_tree(self, data, attr_list):
+		# print "creating treeeeeeeeeeeeeeeee"
+		class_column = data.shape[1]-1 # last column specifies the class
+		# node = decisionnode()
+		unique_classes = unique_counts(data, class_column)
+		
+		if len(unique_classes.keys()) == 1:
+			#only one class
+			print "only one class"
+			self.results = unique_classes.keys()[0]
+			return self
+		val, attr, value_list = best_split(data)
+		if val == float("inf"):
+			majority_class = max(unique_classes, key= lambda k: unique_classes[k])
+			self.results = majority_class
+			return self
+		print "[[[[",val, attr, value_list,"]]]]"
+		self.col = attr
+		self.value = value_list
+		set1, set2 = split(data, attr, value_list)
+
+		if set1.shape[0] > 0:
+			truenode = decisionnode()
+			truenode.create_tree(set1, attr_list)
+			self.tb = truenode
+		else:
+			dummynode = decisionnode()
+			majority_class = max(unique_classes, key= lambda k: unique_classes[k])
+			dummynode.results = majority_class
+			self.tb = dummynode
+		if set2.shape[0] > 0:
+			falsenode = decisionnode()
+			falsenode.create_tree(set2,attr_list)
+			self.fb = falsenode
+		else:
+			majority_class = max(unique_classes, key= lambda k: unique_classes[k])
+			dummynode = decisionnode()
+			dummynode.results = majority_class
+			self.tb = dummynode
+		return self
+
+	def print_tree(self, indent = '    '):
+		if self.results != None:
+			print self.results
+		else:
+			print self.col, ":" , self.value
+			if self.tb:
+				print indent + 'T->',
+				self.tb.print_tree(indent+ '    ')
+			if self.fb:
+				print indent + 'F->',
+				self.fb.print_tree(indent+ '    ')
+
+
+	def predict_value(self, attribute_values):
+		#attribute values will be given
+		if self.results !=None:
+			print "RESULT",self.results
+			return self.results
+		if attribute_values[self.col] in self.value:
+			print attribute_values[self.col], " is in ", self.value, "so TRUE"
+			return self.tb.predict_value(attribute_values)
+		else:
+			print attribute_values[self.col], " is not in ", self.value, "so TFALSE"
+			return self.fb.predict_value(attribute_values)
+
+

@@ -50,7 +50,7 @@ header = test_file_object.next()
 # Finally, loop through each row in the train file, and look in column index [3] (which is 'Sex')
 # Write out the PassengerId, and my prediction.
 
-predictions_file = open("gendermodel.csv", "wb")
+predictions_file = open("gendermodeltest.csv", "wb")
 predictions_file_object = csv.writer(predictions_file)
 predictions_file_object.writerow(["PassengerId", "Survived"])	# write the column headers
 for row in test_file_object:									# For each row in test file,
@@ -70,3 +70,14 @@ data = dt.preprocess(data)
 
 # val, l = dt.gini_impurity_attr(data,2)
 # sol = dt.best_split(data)
+
+attribute_list = range(0,data.shape[1]-1)
+tree = dt.decisionnode()
+tree.create_tree(data, attribute_list)
+
+print "Yo"
+print tree.col
+tree.print_tree()
+
+
+
