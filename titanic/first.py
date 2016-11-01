@@ -62,6 +62,8 @@ test_file.close()												# Close out the files.
 predictions_file.close()
 
 
+
+full_data = data
 import dt
 data = dt.preprocess(data)
 # print data[1:50]
